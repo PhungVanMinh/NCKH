@@ -150,6 +150,11 @@ document.addEventListener('DOMContentLoaded', () => {
             variablesListContainer.appendChild(variableElement);
         });
         updateAvailableIntVariables(); // Cập nhật lại các biến int cho dropdown Số lượng
+
+        const numFiles = parseInt(numFilesInput.value);
+                
+        const resultTextinline = generateValuesFromVariables(currentVariables);
+        outputValues.textContent = resultTextinline;
     }
 
 
@@ -827,14 +832,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
         outputJsonContainer.textContent = JSON.stringify(outputData, null, 2); // null, 2 để format đẹp
     });
-    // --- Khởi tạo lần đầu ---
-    renderVariablesList(); // Giữ nguyên
-    // --- Chức năng sinh giá trị (giữ nguyên từ file gốc) ---
     const generateValuesButton = document.getElementById('generateValuesButton');
     const outputValues = document.getElementById('outputValues');
+    const numFilesInput = document.getElementById('numFiles');
+    const preFileName = document.getElementById('preFileName');
+    // --- Khởi tạo lần đầu ---
+    renderVariablesList(); // Giữ nguyên
+    // --- Chức năng sinh giá trị  ---
+    
+
     generateValuesButton?.addEventListener('click', () => {
-        const resultText = generateValuesFromVariables(currentVariables);
-        outputValues.textContent = resultText;
+        const numFiles = parseInt(numFilesInput.value);
+        
+        const zip = new JSZip();
+        for(let i=1;i<=numFiles;i++){
+            const resultText = generateValuesFromVariables(currentVariables);
+            zip.file(`${preFileName.value}_${i}.txt`, resultText);
+
+        }
+        zip.generateAsync({ type: "blob" })
+            .then(function(blob) {
+                saveAs(blob, `${preFileName.value}`);
+                messageDiv.classList.add('hidden');
+                generateZipButton.disabled = false;
+                alert('Đã tạo và tải xuống file ZIP thành công!');
+            })
+            .catch(function(error) {
+                console.error("Lỗi tạo file ZIP:", error);
+                messageDiv.textContent = "Lỗi khi tạo file ZIP.";
+                generateZipButton.disabled = false;
+            });
+
+        const resultTextinline = generateValuesFromVariables(currentVariables);
+        outputValues.textContent = resultTextinline;
+
+
     });
     function generateValuesFromVariables(state) {
         let lines = [];

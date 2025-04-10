@@ -10,8 +10,20 @@
     <h1>Trình Tạo Bộ Test</h1>
 
     <div class="container">
-<button id="generateValuesButton">Sinh giá trị</button>
-<pre id="outputValues"></pre>
+        <div class="input-section">
+            <button id="generateValuesButton">Sinh giá trị</button>
+            <pre id="outputValues"></pre>
+        </div>
+        <div class="input-section">
+
+            <label for="numFiles">Số lượng file:</label>
+            <input type="number" id="numFiles" value="5">
+        </div>
+        <div class="input-section">
+
+            <label for="preFileName">Đoạn đầu tên file:</label>
+            <input type="text" id="preFileName" value="input">
+        </div>
         <div class="input-section">
             <label for="variableInput">Nhập tên các biến (cách nhau bởi khoảng trắng hoặc xuống dòng):</label>
             <textarea id="variableInput" rows="5"></textarea>
@@ -82,6 +94,11 @@
         </div>
     </template>
 
-    <script src="script.js"></script>
+    <script 
+        src="script.js">
+
+    </script>
+    <script src="jszip.min.js"></script>
+    <script src="FileSaver.min.js"></script>
 </body>
 </html>
