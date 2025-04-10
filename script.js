@@ -33,8 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const recordConfigTemplate = document.getElementById('record-config-template');
     const constraintTemplate = document.getElementById('constraint-template');
 
-    // --- Hàm Hilfsfunktionen ---
-
+   
     // Lấy thông tin LoaiDuLieu theo tên
     function getLoaiDuLieuByName(name) {
         // Trả về bản sao sâu để tránh thay đổi dữ liệu gốc
@@ -50,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    // --- Hàm Render Giao Diện ---
+    
 
     // Render toàn bộ danh sách biến
     function renderVariablesList() {
@@ -198,11 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Render toàn bộ danh sách biến (hàm này có vẻ bị trùng lặp trong file gốc, giữ lại hàm có vẻ hoàn thiện hơn)
-    // function renderVariablesList() { ... } // Bỏ qua hàm trùng lặp phía trên
-
-
-    // Hàm tìm record cha của một thành viên (giữ nguyên từ file gốc)
+    // Hàm tìm record cha của một thành viên 
     function findParentRecordOfMemberInState(memberName, state) {
         for (const topLevelVar of Object.values(state)) {
             if (topLevelVar.LoaiDuLieu.Ten === 'record' && Array.isArray(topLevelVar.LoaiDuLieu.DanhSachThanhVien)) {
