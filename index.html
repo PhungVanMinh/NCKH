@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình Tạo Bộ Test</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Trình Tạo Bộ Test</h1>
+
+    <div class="container">
+<button id="generateValuesButton">Sinh giá trị</button>
+<pre id="outputValues"></pre>
+        <div class="input-section">
+            <label for="variableInput">Nhập tên các biến (cách nhau bởi khoảng trắng hoặc xuống dòng):</label>
+            <textarea id="variableInput" rows="5"></textarea>
+        </div>
+
+        <div class="variables-config-section">
+            <h2>Cấu hình các biến:</h2>
+            <div id="variablesList">
+                </div>
+        </div>
+
+        <div class="output-section">
+            <button id="showJsonButton">Hiển thị JSON Kết quả</button>
+            <pre id="outputJson"></pre>
+        </div>
+    </div>
+
+    <template id="variable-template">
+        <div class="variable-item">
+            <strong class="variable-name"></strong>
+            <div class="config-options">
+                <div class="form-group">
+                    <label>Loại Dữ Liệu:</label>
+                    <select class="loai-du-lieu-select"></select>
+                </div>
+                <div class="specific-config">
+                    </div>
+                <div class="constraints-section">
+                    <label>Ràng buộc:</label>
+                    <div class="constraints-list">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="array-config-template">
+        <div class="form-group array-config">
+            <label>Số lượng:</label>
+            <select class="array-so-luong-select"></select>
+            <input type="number" class="array-so-luong-input" style="display: none;" placeholder="Nhập số lượng"/>
+            <label>Kiểu Phần Tử:</label>
+            <div class="array-kieu-phan-tu-container">
+                 </div>
+        </div>
+    </template>
+
+     <template id="record-config-template">
+        <div class="form-group record-config">
+            <label>Thành viên:</label>
+            <div class="record-members-list">
+                </div>
+            <button class="add-member-button">Thêm Thành Viên</button>
+            <div class="add-member-form" style="display: none;">
+                 <input type="text" placeholder="Tên thành viên" class="new-member-name">
+                 <button class="confirm-add-member">Xác nhận</button>
+                 <button class="cancel-add-member">Hủy</button>
+            </div>
+        </div>
+    </template>
+
+    <template id="constraint-template">
+        <div class="constraint-item">
+            <input type="checkbox" class="constraint-checkbox">
+            <label class="constraint-name"></label>
+            <span class="constraint-description"></span>
+            <input type="text" class="constraint-value" style="display: none;">
+        </div>
+    </template>
+
+    <script src="script.js"></script>
+</body>
+</html>
