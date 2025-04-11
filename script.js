@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateAvailableIntVariables(); // Cập nhật lại các biến int cho dropdown Số lượng
 
-        const numFiles = parseInt(numFilesInput.value);
+       // const numFiles = parseInt(numFilesInput.value);
                 
         const resultTextinline = generateValuesFromVariables(currentVariables);
         outputValues.textContent = resultTextinline;
@@ -163,10 +163,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let defaultType = 'int';
 // Mặc định chung
         // Tự động nhận diện kiểu top-level
-        if (['m', 'n'].includes(tenBien)) defaultType = 'int';
+        if (['m', 'n','t'].includes(tenBien)) defaultType = 'int';
         else if (tenBien === 'ch') defaultType = 'char';
         else if (['a', 'b'].includes(tenBien)) defaultType = 'array';
-        else if (tenBien === 't') defaultType = 'record'; // Nhận diện 't' là record
+        else if (tenBien === 'r') defaultType = 'record'; // Nhận diện 'r' là record
 
         const loaiDuLieu = getLoaiDuLieuByName(defaultType);
         if (!loaiDuLieu) {
@@ -178,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loaiDuLieu.Ten === 'array') {
             loaiDuLieu.SoLuong = ''; // *** GỐC: 1 -> SỬA THÀNH '' ***
             loaiDuLieu.KieuPhanTu = getLoaiDuLieuByName('int');
+            
         } else if (loaiDuLieu.Ten === 'record') {
             loaiDuLieu.DanhSachThanhVien = [];
         }
@@ -226,8 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hàm tìm kiếm Bien/LoaiDuLieu trong state bằng path (giữ nguyên)
     function findBienByPath(path) {
         let current = currentVariables;
+        console.log("Tìm kiếm theo path:", path);
         for (let i = 0; i < path.length; i++) {
             const segment = path[i];
+            console.log("  Segment:", segment, "Current:", current);
             if (i === 0) { // Segment đầu tiên là tên biến chính
                 if (!current[segment]) return null;
                 if(path.length === 1) return current[segment]; // Trả về chính biến đó nếu path chỉ có 1 phần
@@ -237,10 +240,10 @@ document.addEventListener('DOMContentLoaded', () => {
                  // Cần trả về cấu trúc Bien chứa LoaiDuLieu này nếu là cuối path
                  if(i === path.length - 1) {
                       // Tạo cấu trúc giả Bien chứa LoaiDuLieu
-                      return { TenBien: '[Kiểu Phần Tử]', LoaiDuLieu: current.LoaiDuLieu.KieuPhanTu, DanhSachRangBuoc: [] };
+                      return { TenBien: '[KieuPhanTu]', LoaiDuLieu: current.LoaiDuLieu.KieuPhanTu, DanhSachRangBuoc: [] };
                  }
                  // Đi sâu vào KieuPhanTu để chuẩn bị cho segment tiếp theo
-                 current = { TenBien: '[Kiểu Phần Tử]', LoaiDuLieu: current.LoaiDuLieu.KieuPhanTu, DanhSachRangBuoc: [] }; // Bọc lại
+                 current = { TenBien: '[KieuPhanTu]', LoaiDuLieu: current.LoaiDuLieu.KieuPhanTu, DanhSachRangBuoc: [] }; // Bọc lại
             } else if (segment === 'DanhSachThanhVien') {
                 if (!current.LoaiDuLieu || !Array.isArray(current.LoaiDuLieu.DanhSachThanhVien)) return null;
                 current = current.LoaiDuLieu.DanhSachThanhVien; // Đi vào mảng thành viên
@@ -416,8 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const specificConfigContainer = variableItem.querySelector('.specific-config');
         const constraintsListContainer = variableItem.querySelector('.constraints-list');
         const configOptionsDiv = variableItem.querySelector('.config-options'); // Lấy div cha của các config
-
-        // ** QUAN TRỌNG: Xác định path cho mục này **
+        //const elementConstraintsContainer = arrayConfigNode.querySelector('.array-element-constraints-list');
+          // ** QUAN TRỌNG: Xác định path cho mục này **
         // Nếu path rỗng (gọi từ renderVariablesList cho top-level), path gốc là [tenBien]
         // Nếu path không rỗng (gọi đệ quy), giữ nguyên path đó
         const currentPath = path.length > 0 ? path : [bienData.TenBien];
@@ -517,304 +520,369 @@ document.addEventListener('DOMContentLoaded', () => {
         return variableItem;
     }
 
-    // Render cấu hình riêng cho Array hoặc Record (HÀM NÀY SẼ ĐƯỢC SỬA)
-    function renderSpecificConfig(loaiDuLieu, container, parentPath) { // parentPath là path đến loaiDuLieu này
-         container.innerHTML = '';
-         if (loaiDuLieu.Ten === 'array') {
-             const arrayConfigNode = arrayConfigTemplate.content.cloneNode(true);
+    function renderSpecificConfig(loaiDuLieu, container, parentPath) {
+        container.innerHTML = '';
+        if (loaiDuLieu.Ten === 'array') {
+            const arrayConfigNode = arrayConfigTemplate.content.cloneNode(true);
             const soLuongSelect = arrayConfigNode.querySelector('.array-so-luong-select');
-             const soLuongInput = arrayConfigNode.querySelector('.array-so-luong-input');
-             const kieuPhanTuContainer = arrayConfigNode.querySelector('.array-kieu-phan-tu-container');
-
-             populateSoLuongOptions(soLuongSelect, loaiDuLieu.SoLuong);
-             // Xử lý hiển thị input hoặc select cho số lượng
-             if(typeof loaiDuLieu.SoLuong === 'number') {
-                 soLuongInput.value = loaiDuLieu.SoLuong;
-                 soLuongInput.style.display = 'inline-block';
-                 soLuongSelect.value = '__custom__'; // Chọn option tùy chỉnh
-             } else {
-                  soLuongInput.style.display = 'none';
-                  // Giá trị select được đặt trong populateSoLuongOptions
-             }
-
-
-             // Event listener cho Số Lượng Select
-             soLuongSelect.addEventListener('change', (e) => {
-                 const selectedValue = e.target.value;
-                 // *** SỬA CHỖ NÀY: Dùng parentPath thay vì lấy từ DOM ***
-                 const dataPath = parentPath;
-                 // *** SỬA CHỖ NÀY: Tìm LoaiDuLieu thay vì Bien ***
-                 const targetLoaiDuLieu = findLoaiDuLieuByPath(dataPath);
-
-                 console.log("soLuongSelect change. Path:", JSON.stringify(dataPath), "Selected:", selectedValue, "Target LD:", targetLoaiDuLieu);
-
-
-                 // *** SỬA CHỖ NÀY: Cập nhật targetLoaiDuLieu.SoLuong ***
-                 if (targetLoaiDuLieu && targetLoaiDuLieu.Ten === 'array') {
-                     if (selectedValue === '__custom__') {
-                         soLuongInput.style.display = 'inline-block';
-                         soLuongInput.value = 1;
-                         targetLoaiDuLieu.SoLuong = 1; // Cập nhật state
-                         soLuongInput.focus();
-                     } else {
-                         soLuongInput.style.display = 'none';
-                         targetLoaiDuLieu.SoLuong = selectedValue; // Cập nhật state (lưu tên biến hoặc '')
-                     }
-                     console.log(`   -> Updated state SoLuong for ${JSON.stringify(dataPath)} to:`, targetLoaiDuLieu.SoLuong);
-                 } else {
-                     console.error("Không tìm thấy LoaiDuLieu kiểu array để cập nhật SoLuong tại path:", dataPath);
-                 }
-             });
-             // Event listener cho Số Lượng Input
-             soLuongInput.addEventListener('input', (e) => {
-                 // *** SỬA CHỖ NÀY: Dùng parentPath ***
-                 const dataPath = parentPath;
-                 // *** SỬA CHỖ NÀY: Tìm LoaiDuLieu ***
-                 const targetLoaiDuLieu = findLoaiDuLieuByPath(dataPath);
-
-                 console.log("soLuongInput input. Path:", JSON.stringify(dataPath), "Value:", e.target.value, "Target LD:", targetLoaiDuLieu);
-
-
-                 // *** SỬA CHỖ NÀY: Cập nhật targetLoaiDuLieu.SoLuong ***
-                 if (targetLoaiDuLieu && targetLoaiDuLieu.Ten === 'array') {
+            const soLuongInput = arrayConfigNode.querySelector('.array-so-luong-input');
+            const kieuPhanTuContainer = arrayConfigNode.querySelector('.array-kieu-phan-tu-container');
+            // === SỬA ĐỔI: Lấy container cho ràng buộc của kiểu phần tử ===
+            const elementConstraintsContainer = arrayConfigNode.querySelector('.array-element-constraints-list');
+    
+            populateSoLuongOptions(soLuongSelect, loaiDuLieu.SoLuong);
+            // Xử lý hiển thị input hoặc select cho số lượng
+            if (typeof loaiDuLieu.SoLuong === 'number') {
+                soLuongInput.value = loaiDuLieu.SoLuong;
+                soLuongInput.style.display = 'inline-block';
+                soLuongSelect.value = '__custom__';
+            } else {
+                soLuongInput.style.display = 'none';
+            }
+    
+            // Event listener cho Số Lượng Select (Giữ nguyên logic cập nhật state)
+            soLuongSelect.addEventListener('change', (e) => {
+                const selectedValue = e.target.value;
+                const dataPath = parentPath;
+                const targetLoaiDuLieu = findLoaiDuLieuByPath(dataPath);
+                if (targetLoaiDuLieu && targetLoaiDuLieu.Ten === 'array') {
+                    if (selectedValue === '__custom__') {
+                        soLuongInput.style.display = 'inline-block';
+                        soLuongInput.value = targetLoaiDuLieu.SoLuong || 1; // Giữ giá trị cũ nếu có hoặc mặc định là 1
+                        targetLoaiDuLieu.SoLuong = parseInt(soLuongInput.value, 10) || 1; // Cập nhật state
+                        soLuongInput.focus();
+                    } else {
+                        soLuongInput.style.display = 'none';
+                        targetLoaiDuLieu.SoLuong = selectedValue; // Cập nhật state (lưu tên biến hoặc '')
+                    }
+                    console.log(`   -> Updated state SoLuong for ${JSON.stringify(dataPath)} to:`, targetLoaiDuLieu.SoLuong);
+                } else {
+                    console.error("Không tìm thấy LoaiDuLieu kiểu array để cập nhật SoLuong tại path:", dataPath);
+                }
+            });
+    
+            // Event listener cho Số Lượng Input (Giữ nguyên logic cập nhật state)
+            soLuongInput.addEventListener('input', (e) => {
+                const dataPath = parentPath;
+                const targetLoaiDuLieu = findLoaiDuLieuByPath(dataPath);
+                if (targetLoaiDuLieu && targetLoaiDuLieu.Ten === 'array') {
                     targetLoaiDuLieu.SoLuong = parseInt(e.target.value, 10) || 0; // Cập nhật state
                     console.log(`   -> Updated state SoLuong for ${JSON.stringify(dataPath)} to:`, targetLoaiDuLieu.SoLuong);
-
-                 } else {
+                } else {
                     console.error("Không tìm thấy LoaiDuLieu kiểu array để cập nhật SoLuong (input) tại path:", dataPath);
-                 }
-             });
-             // Render Kiểu Phần Tử (đệ quy nếu cần)
-             // Truyền path cho KieuPhanTu: parentPath + ['KieuPhanTu']
-             renderKieuPhanTu(loaiDuLieu.KieuPhanTu, kieuPhanTuContainer, parentPath.concat(['KieuPhanTu']));
-
-             container.appendChild(arrayConfigNode);
-         } else if (loaiDuLieu.Ten === 'record') {
-             const recordConfigNode = recordConfigTemplate.content.cloneNode(true);
+                }
+            });
+    
+            // === SỬA ĐỔI: Gọi renderKieuPhanTu và truyền container ràng buộc ===
+            // Path cho KieuPhanTu: parentPath + ['KieuPhanTu']
+            // Đảm bảo KieuPhanTu tồn tại trong state
+            if (!loaiDuLieu.KieuPhanTu) {
+                loaiDuLieu.KieuPhanTu = getLoaiDuLieuByName('int'); // Hoặc kiểu mặc định khác
+            }
+            renderKieuPhanTu(
+                loaiDuLieu.KieuPhanTu,
+                kieuPhanTuContainer,
+                elementConstraintsContainer, // Truyền container ràng buộc
+                parentPath.concat(['KieuPhanTu']) // Path đến KieuPhanTu
+            );
+    
+            // === XÓA BỎ ĐOẠN CODE RENDER CONSTRAINTS CŨ Ở ĐÂY ===
+            /*
+            const elementConstraintsContainer = arrayConfigNode.querySelector('.array-element-constraints-list');
+            if (loaiDuLieu.KieuPhanTu) {
+                const tempBien = {
+                    TenBien: '[Kiểu Phần Tử]',
+                    LoaiDuLieu: loaiDuLieu.KieuPhanTu,
+                    DanhSachRangBuoc: [] // SAI: Cần lấy đúng danh sách ràng buộc của element
+                };
+                 renderConstraints(tempBien, elementConstraintsContainer, parentPath.concat(['KieuPhanTu']));
+             }
+            */
+    
+            container.appendChild(arrayConfigNode);
+    
+        } else if (loaiDuLieu.Ten === 'record') {
+            // Phần xử lý record giữ nguyên...
+            const recordConfigNode = recordConfigTemplate.content.cloneNode(true);
             const membersListContainer = recordConfigNode.querySelector('.record-members-list');
-             const addMemberButton = recordConfigNode.querySelector('.add-member-button');
-             const addMemberForm = recordConfigNode.querySelector('.add-member-form');
-             const newMemberNameInput = recordConfigNode.querySelector('.new-member-name');
-             const confirmAddButton = recordConfigNode.querySelector('.confirm-add-member');
+            const addMemberButton = recordConfigNode.querySelector('.add-member-button');
+            const addMemberForm = recordConfigNode.querySelector('.add-member-form');
+            const newMemberNameInput = recordConfigNode.querySelector('.new-member-name');
+            const confirmAddButton = recordConfigNode.querySelector('.confirm-add-member');
             const cancelAddButton = recordConfigNode.querySelector('.cancel-add-member');
+    
+            if (!Array.isArray(loaiDuLieu.DanhSachThanhVien)) loaiDuLieu.DanhSachThanhVien = [];
+    
+            loaiDuLieu.DanhSachThanhVien.forEach((memberBien, index) => {
+                const memberPath = parentPath.concat(['DanhSachThanhVien', index]);
+                const memberElement = renderVariableItem(memberBien, true, memberPath);
+                membersListContainer.appendChild(memberElement);
+            });
+    
+            addMemberButton.addEventListener('click', () => { addMemberForm.style.display = 'flex'; newMemberNameInput.value = ''; newMemberNameInput.focus(); });
+            cancelAddButton.addEventListener('click', () => { addMemberForm.style.display = 'none'; });
+    
+            confirmAddButton.addEventListener('click', () => {
+                const memberName = newMemberNameInput.value.trim();
+                if (memberName) {
+                    const targetRecordLoaiDuLieu = findLoaiDuLieuByPath(parentPath);
+                    if (targetRecordLoaiDuLieu && targetRecordLoaiDuLieu.Ten === 'record') {
+                        if (targetRecordLoaiDuLieu.DanhSachThanhVien.some(m => m.TenBien === memberName)) {
+                            alert('Tên thành viên đã tồn tại trong record này!');
+                            return;
+                        }
+                        const newMember = createDefaultBien(memberName);
+                        if(newMember) {
+                            targetRecordLoaiDuLieu.DanhSachThanhVien.push(newMember);
+                            renderSpecificConfig(targetRecordLoaiDuLieu, container, parentPath); // Render lại record
+                            addMemberForm.style.display = 'none';
+                        }
+                    } else {
+                        console.error("Không tìm thấy record để thêm thành viên:", parentPath);
+                    }
+                }
+            });
+            container.appendChild(recordConfigNode);
+        }
+    }
+// Render cấu hình Kiểu Phần Tử cho Array
+function renderKieuPhanTu(elementLoaiDuLieu, typeContainer, constraintsContainer, elementPath) {
+    // elementPath là path đến KieuPhanTu này, ví dụ ['a', 'KieuPhanTu']
+    typeContainer.innerHTML = ''; // Xóa cấu hình kiểu cũ
+    constraintsContainer.innerHTML = ''; // Xóa ràng buộc cũ
 
-             // Render danh sách thành viên hiện có (đệ quy)
-             if (!Array.isArray(loaiDuLieu.DanhSachThanhVien)) loaiDuLieu.DanhSachThanhVien = []; // Đảm bảo là mảng
-             loaiDuLieu.DanhSachThanhVien.forEach((memberBien, index) => {
-                 const memberPath = parentPath.concat(['DanhSachThanhVien', index]); // Thêm path cho member
-                 const memberElement = renderVariableItem(memberBien, true, memberPath); // Truyền path đúng
-                 membersListContainer.appendChild(memberElement);
-             });
-             // Event listener cho nút "Thêm Thành Viên"
-             addMemberButton.addEventListener('click', () => {
-                 addMemberForm.style.display = 'flex';
-                 newMemberNameInput.value = '';
-                 newMemberNameInput.focus();
-             });
-             cancelAddButton.addEventListener('click', () => {
-                  addMemberForm.style.display = 'none';
-             });
-             // Event listener cho nút "Xác nhận" thêm thành viên
-              confirmAddButton.addEventListener('click', () => {
-                  const memberName = newMemberNameInput.value.trim();
-                  if (memberName) {
-                       // *** SỬA: Dùng parentPath để tìm record cha ***
-                       const targetRecordLoaiDuLieu = findLoaiDuLieuByPath(parentPath);
+    // --- Đảm bảo có chỗ lưu ràng buộc cho kiểu phần tử ---
+    if (!elementLoaiDuLieu.ElementConstraints) {
+        elementLoaiDuLieu.ElementConstraints = [];
+    }
 
-                      if (targetRecordLoaiDuLieu && targetRecordLoaiDuLieu.Ten === 'record') {
-                           // Kiểm tra tên thành viên trùng
-                           if (targetRecordLoaiDuLieu.DanhSachThanhVien.some(m => m.TenBien === memberName)) {
-                               alert('Tên thành viên đã tồn tại trong record này!');
-                               return;
-                           }
+    // --- 1. Dropdown chọn kiểu cơ bản ---
+    const kieuPhanTuSelect = document.createElement('select');
+    kieuPhanTuSelect.classList.add('loai-du-lieu-select'); // Tái sử dụng class
 
-                          const newMember = createDefaultBien(memberName); // Tạo thành viên mới với kiểu mặc định
-                           if(newMember) {
-                                targetRecordLoaiDuLieu.DanhSachThanhVien.push(newMember);
-                                // Render lại chỉ phần record này
-                                renderSpecificConfig(targetRecordLoaiDuLieu, container, parentPath);
-                                addMemberForm.style.display = 'none'; // Ẩn form sau khi thêm
-                           }
-                      } else {
-                           console.error("Không tìm thấy record để thêm thành viên:", parentPath);
-                      }
-                  }
-              });
-             container.appendChild(recordConfigNode);
-         }
-     }
+    loaiDuLieuData.forEach(ld => {
+        const option = document.createElement('option');
+        option.value = ld.Ten;
+        option.textContent = ld.Ten;
+        if (elementLoaiDuLieu && elementLoaiDuLieu.Ten === ld.Ten) {
+            option.selected = true;
+        }
+        kieuPhanTuSelect.appendChild(option);
+    });
+    typeContainer.appendChild(kieuPhanTuSelect);
 
-      // Render cấu hình Kiểu Phần Tử cho Array (HÀM NÀY SẼ ĐƯỢC SỬA)
-     function renderKieuPhanTu(kieuPhanTuData, container, currentPath) { // currentPath là path đến KieuPhanTu này
-         container.innerHTML = '';
+    // --- 2. Event Listener cho Dropdown thay đổi kiểu ---
+    kieuPhanTuSelect.addEventListener('change', (e) => {
+        const newElementTypeName = e.target.value;
+        const parentArrayPath = elementPath.slice(0, -1); // Path của biến array cha
+        const parentArrayLoaiDuLieu = findLoaiDuLieuByPath(parentArrayPath);
 
-         // 1. Dropdown chọn kiểu cơ bản
-         const kieuPhanTuSelect = document.createElement('select');
-         kieuPhanTuSelect.classList.add('loai-du-lieu-select'); // Tái sử dụng class
-
-         loaiDuLieuData.forEach(ld => {
-             const option = document.createElement('option');
-             option.value = ld.Ten;
-             option.textContent = ld.Ten;
-             if (kieuPhanTuData && kieuPhanTuData.Ten === ld.Ten) {
-                 option.selected = true;
-             }
-             kieuPhanTuSelect.appendChild(option);
-         });
-         container.appendChild(kieuPhanTuSelect);
-
-          // 2. Container cho cấu hình con (nếu là array/record)
-         const nestedConfigContainer = document.createElement('div');
-         nestedConfigContainer.classList.add('nested-type-config'); // Thêm class để định dạng nếu cần
-         container.appendChild(nestedConfigContainer);
-         // 3. Event listener cho select kiểu phần tử
-         kieuPhanTuSelect.addEventListener('change', (e) => {
-             const newElementTypeName = e.target.value;
-             const dataPath = currentPath; // Path đã được truyền vào
-             // Path đến array cha
-             const parentArrayPath = dataPath.slice(0, -1);
-             const parentArrayLoaiDuLieu = findLoaiDuLieuByPath(parentArrayPath);
-
-             if (parentArrayLoaiDuLieu && parentArrayLoaiDuLieu.Ten === 'array') {
-                 const newElementType = getLoaiDuLieuByName(newElementTypeName); // Lấy cấu trúc mới
-                 if (!newElementType) return; // Không tìm thấy kiểu mới
-
-                 parentArrayLoaiDuLieu.KieuPhanTu = newElementType; // Gán kiểu phần tử mới vào state
-
-                  // *** SỬA CHỖ NÀY: Khởi tạo SoLuong = '' cho array con ***
-                  // Khởi tạo mặc định nếu kiểu mới là array/record
-                 if (parentArrayLoaiDuLieu.KieuPhanTu.Ten === 'array') {
-                     // Đặt SoLuong mặc định là '' nếu chưa có hoặc null/undefined
-                     if (parentArrayLoaiDuLieu.KieuPhanTu.SoLuong === null || parentArrayLoaiDuLieu.KieuPhanTu.SoLuong === undefined) {
-                         parentArrayLoaiDuLieu.KieuPhanTu.SoLuong = '';
-                     }
-                     if (!parentArrayLoaiDuLieu.KieuPhanTu.KieuPhanTu) parentArrayLoaiDuLieu.KieuPhanTu.KieuPhanTu = getLoaiDuLieuByName('int');
-                 } else if (parentArrayLoaiDuLieu.KieuPhanTu.Ten === 'record') {
-                     if (!parentArrayLoaiDuLieu.KieuPhanTu.DanhSachThanhVien) parentArrayLoaiDuLieu.KieuPhanTu.DanhSachThanhVien = [];
-                 }
-
-                 // Render lại cấu hình con với path đúng của KieuPhanTu (dataPath)
-                 renderNestedConfig(parentArrayLoaiDuLieu.KieuPhanTu, nestedConfigContainer, dataPath);
-                 // Cập nhật lại các dropdown số lượng
-                 updateAvailableIntVariables();
-
-             } else {
-                  console.error("Không tìm thấy Array cha để cập nhật Kiểu Phần Tử:", dataPath);
-             }
-
-         });
-         // 4. Render cấu hình con ban đầu
-         renderNestedConfig(kieuPhanTuData, nestedConfigContainer, currentPath);
-     }
-
-     // Render cấu hình con (nested) cho Array's KieuPhanTu hoặc Record's Member (giữ nguyên)
-     function renderNestedConfig(nestedLoaiDuLieu, container, currentPath) {
-          container.innerHTML = ''; // Xóa cấu hình con cũ
-          if (nestedLoaiDuLieu && (nestedLoaiDuLieu.Ten === 'array' || nestedLoaiDuLieu.Ten === 'record')) {
-              // Gọi lại hàm render cấu hình riêng, nhưng truyền vào container này và path mới
-              renderSpecificConfig(nestedLoaiDuLieu, container, currentPath);
-          }
-     }
-
-    // Render danh sách ràng buộc cho một biến (giữ nguyên)
-    function renderConstraints(bienData, container, parentPath) {
-        container.innerHTML = ''; // Xóa cũ
-        const loaiDuLieuHienTai = bienData.LoaiDuLieu ? bienData.LoaiDuLieu.Ten : null;
-        if (!loaiDuLieuHienTai) return;
-
-        // Lọc các ràng buộc phù hợp
-        const applicableConstraints = rangBuocData.filter(rb => rb.LoaiDuLieuApDung.includes(loaiDuLieuHienTai));
-        applicableConstraints.forEach(rb => {
-            const constraintNode = constraintTemplate.content.cloneNode(true);
-            const checkbox = constraintNode.querySelector('.constraint-checkbox');
-            const nameLabel = constraintNode.querySelector('.constraint-name');
-            const descriptionSpan = constraintNode.querySelector('.constraint-description');
-            const valueInput = constraintNode.querySelector('.constraint-value');
-
-            checkbox.dataset.constraintName = rb.Ten; // Lưu tên ràng buộc để xử lý event
-            nameLabel.textContent = rb.Ten;
-            descriptionSpan.textContent = `(${rb.MoTa})`;
-
-            // Kiểm tra xem ràng buộc này đã được chọn cho biến chưa
-            const existingConstraint = bienData.DanhSachRangBuoc.find(appliedRb => appliedRb.Ten === rb.Ten);
-
-            if (existingConstraint) {
-                 checkbox.checked = true;
-                valueInput.value = existingConstraint.GiaTri;
-                valueInput.style.display = 'inline-block';
-            } else {
-                checkbox.checked = false;
-                valueInput.value = rb.GiaTri; // Hiển thị giá trị mặc định (nhưng ẩn)
-                valueInput.style.display = 'none';
+        if (parentArrayLoaiDuLieu && parentArrayLoaiDuLieu.Ten === 'array') {
+            const newElementLoaiDuLieuData = getLoaiDuLieuByName(newElementTypeName);
+            if (!newElementLoaiDuLieuData) {
+                console.error("Không tìm thấy dữ liệu cho kiểu mới:", newElementTypeName);
+                return;
             }
 
-             // Đặt kiểu cho valueInput dựa trên ràng buộc (ví dụ)
-             if (rb.Ten === 'GiaTriLonNhat' || rb.Ten === 'GiaTriNhoNhat') {
-                 valueInput.type = 'number';
-             } else {
-                  valueInput.type = 'text'; // Hoặc có thể là checkbox nếu GiaTri là boolean
+            // --- Cập nhật State ---
+            parentArrayLoaiDuLieu.KieuPhanTu = newElementLoaiDuLieuData;
+            // --- Reset/Khởi tạo ràng buộc cho kiểu mới ---
+            parentArrayLoaiDuLieu.KieuPhanTu.ElementConstraints = [];
+
+            console.log(`Changed element type for ${JSON.stringify(elementPath)} to ${newElementTypeName}. State updated.`);
+
+            // --- Render lại cấu hình con (nếu kiểu mới là array/record) và ràng buộc ---
+            // Xóa cấu hình con cũ (nếu có)
+             const childSpecificConfigContainer = typeContainer.querySelector('.specific-config-for-element');
+             if (childSpecificConfigContainer) {
+                 childSpecificConfigContainer.remove();
              }
+            // Xóa ràng buộc cũ
+            constraintsContainer.innerHTML = '';
 
+            // Render lại cấu hình con và ràng buộc mới
+            renderKieuPhanTu_Internal(
+                 parentArrayLoaiDuLieu.KieuPhanTu, // Dùng KieuPhanTu đã cập nhật
+                 typeContainer,
+                 constraintsContainer,
+                 elementPath
+             );
 
-             // Event listener cho checkbox
-            checkbox.addEventListener('change', (e) => {
-                 const isChecked = e.target.checked;
-                 const constraintName = e.target.dataset.constraintName;
-                 // Dùng parentPath để tìm đúng biến
-                 const targetBien = findBienByPath(parentPath);
+        } else {
+            console.error("Không tìm thấy đối tượng Array LoaiDuLieu cha tại path:", parentArrayPath);
+        }
+    });
 
-                if(targetBien) {
-                     if (isChecked) {
-                         // Thêm ràng buộc vào danh sách của biến
-                         const newConstraint = getRangBuocByName(constraintName);
-                         // Lấy giá trị hiện tại từ input (có thể là mặc định) và chuyển đổi kiểu
-                         if (valueInput.type === 'number') {
-                            newConstraint.GiaTri = parseFloat(valueInput.value) || 0;
-                         } else {
-                            newConstraint.GiaTri = valueInput.value;
-                         }
-                         targetBien.DanhSachRangBuoc.push(newConstraint);
-                         valueInput.style.display = 'inline-block';
-                     } else {
-                         // Xóa ràng buộc khỏi danh sách
-                         targetBien.DanhSachRangBuoc = targetBien.DanhSachRangBuoc.filter(appliedRb => appliedRb.Ten !== constraintName);
-                         valueInput.style.display = 'none';
-                         valueInput.value = getRangBuocByName(constraintName).GiaTri; // Reset về giá trị mặc định khi bỏ chọn
-                     }
-                 } else {
-                     console.error("Không tìm thấy biến để cập nhật ràng buộc:", parentPath);
-                 }
-            });
-            // Event listener cho ô nhập giá trị ràng buộc
-            valueInput.addEventListener('input', (e) => {
-                 const constraintName = checkbox.dataset.constraintName; // Lấy tên từ checkbox tương ứng
-                 const newValue = e.target.value;
-                 // Dùng parentPath để tìm đúng biến
-                 const targetBien = findBienByPath(parentPath);
+     // --- 3. Gọi hàm nội bộ để render cấu hình con (nếu cần) và ràng buộc ban đầu ---
+     renderKieuPhanTu_Internal(elementLoaiDuLieu, typeContainer, constraintsContainer, elementPath);
+}
 
-                if(targetBien) {
-                     const constraintToUpdate = targetBien.DanhSachRangBuoc.find(appliedRb => appliedRb.Ten === constraintName);
-                     if (constraintToUpdate) {
-                          // Cập nhật giá trị (cần chuyển đổi kiểu nếu cần, ví dụ sang số)
-                          if(e.target.type === 'number'){
-                              constraintToUpdate.GiaTri = parseFloat(newValue) || 0;
-                          } else {
-                              constraintToUpdate.GiaTri = newValue;
-                          }
-                     }
-                 }
-            });
+// Hàm nội bộ để render cấu hình con (cho array/record element) và ràng buộc
+function renderKieuPhanTu_Internal(elementLoaiDuLieu, typeContainer, constraintsContainer, elementPath) {
 
+    // --- a. Render cấu hình con nếu kiểu phần tử là array hoặc record ---
+    if (elementLoaiDuLieu.Ten === 'array' || elementLoaiDuLieu.Ten === 'record') {
+         // Tạo container riêng cho cấu hình con của kiểu phần tử
+         const childSpecificConfigContainer = document.createElement('div');
+         childSpecificConfigContainer.classList.add('specific-config-for-element'); // Class để nhận diện
+         childSpecificConfigContainer.style.marginLeft = '15px'; // Thụt lề nhỏ
+         childSpecificConfigContainer.style.marginTop = '5px';
+         childSpecificConfigContainer.style.borderLeft = '2px solid #eee';
+         childSpecificConfigContainer.style.paddingLeft = '10px';
 
-            container.appendChild(constraintNode);
-        });
+         // Gọi đệ quy renderSpecificConfig cho kiểu phần tử
+         // Path sẽ là elementPath (ví dụ: ['a', 'KieuPhanTu'])
+         renderSpecificConfig(elementLoaiDuLieu, childSpecificConfigContainer, elementPath);
+         typeContainer.appendChild(childSpecificConfigContainer); // Thêm vào sau dropdown
     }
+
+    // --- b. Render Ràng buộc cho kiểu phần tử hiện tại ---
+    constraintsContainer.innerHTML = ''; // Xóa ràng buộc cũ (phòng trường hợp gọi lại)
+    // Tạo đối tượng pseudo-Bien
+    const elementPseudoBien = {
+        TenBien: '[ElementType]', // Tên giả không quan trọng lắm
+        LoaiDuLieu: elementLoaiDuLieu,
+        DanhSachRangBuoc: elementLoaiDuLieu.ElementConstraints // Lấy mảng ràng buộc của element
+    };
+
+    // Gọi renderConstraints với pseudo-Bien, container đúng, và path đúng (elementPath)
+    renderConstraints(elementPseudoBien, constraintsContainer, elementPath);
+    console.log(`Rendered constraints for element type at ${JSON.stringify(elementPath)}`);
+}
+
+
+// Render danh sách các ràng buộc có thể áp dụng
+function renderConstraints(targetBien, container, dataPath) { // dataPath là path đến targetBien hoặc KieuPhanTu
+    container.innerHTML = ''; // Xóa các ràng buộc cũ
+
+    const loaiDuLieuApDung = targetBien.LoaiDuLieu.Ten;
+    const rangBuocCoThe = loaiDuLieuData.find(ld => ld.Ten === loaiDuLieuApDung)?.DanhSachRangBuocCoThe || [];
+    const danhSachRangBuocDaChon = targetBien.DanhSachRangBuoc || []; // Lấy danh sách đã chọn từ Bien/PseudoBien
+
+    console.log(`Rendering constraints for path ${JSON.stringify(dataPath)}, type: ${loaiDuLieuApDung}, available: [${rangBuocCoThe.join(', ')}], selected:`, JSON.stringify(danhSachRangBuocDaChon));
+
+
+    rangBuocCoThe.forEach(rbName => {
+        const rangBuocInfo = getRangBuocByName(rbName);
+        if (!rangBuocInfo) return;
+
+        const constraintNode = constraintTemplate.content.cloneNode(true);
+        const constraintItem = constraintNode.querySelector('.constraint-item');
+        const checkbox = constraintNode.querySelector('.constraint-checkbox');
+        const nameLabel = constraintNode.querySelector('.constraint-name');
+        const descriptionSpan = constraintNode.querySelector('.constraint-description');
+        const valueInput = constraintNode.querySelector('.constraint-value');
+
+        nameLabel.textContent = rangBuocInfo.Ten;
+        nameLabel.htmlFor = `constraint-${JSON.stringify(dataPath)}-${rbName}`; // Unique ID for label
+        checkbox.id = `constraint-${JSON.stringify(dataPath)}-${rbName}`;
+        descriptionSpan.textContent = `(${rangBuocInfo.MoTa})`;
+
+        // Kiểm tra xem ràng buộc này đã được chọn chưa
+        const existingConstraint = danhSachRangBuocDaChon.find(rb => rb.Ten === rbName);
+        if (existingConstraint) {
+            checkbox.checked = true;
+            // Nếu ràng buộc có giá trị cần nhập (ví dụ: GiaTriLonNhat)
+            if (rangBuocInfo.hasOwnProperty('GiaTri') && typeof rangBuocInfo.GiaTri !== 'boolean') { // Hoặc kiểm tra kiểu dữ liệu cụ thể
+                 valueInput.style.display = 'inline-block';
+                 valueInput.value = existingConstraint.GiaTri ?? rangBuocInfo.GiaTri; // Lấy giá trị đã lưu hoặc giá trị mặc định
+                 // Xác định kiểu input dựa trên LoaiDuLieuApDung hoặc loại giá trị
+                 if (loaiDuLieuApDung === 'int' || loaiDuLieuApDung === 'double') {
+                      valueInput.type = 'number';
+                      valueInput.step = (loaiDuLieuApDung === 'double') ? 'any' : '1';
+                 } else {
+                      valueInput.type = 'text';
+                 }
+            }
+        } else {
+             // Nếu ràng buộc có giá trị nhưng chưa được chọn, vẫn có thể hiển thị input mờ đi hoặc ẩn
+             if (rangBuocInfo.hasOwnProperty('GiaTri') && typeof rangBuocInfo.GiaTri !== 'boolean') {
+                 valueInput.value = rangBuocInfo.GiaTri; // Giá trị mặc định
+                 // Tương tự, xác định type
+                  if (loaiDuLieuApDung === 'int' || loaiDuLieuApDung === 'double') {
+                     valueInput.type = 'number';
+                     valueInput.step = (loaiDuLieuApDung === 'double') ? 'any' : '1';
+                 } else {
+                      valueInput.type = 'text';
+                 }
+                 // valueInput.style.display = 'none'; // Hoặc không ẩn để người dùng thấy giá trị mặc định
+                 valueInput.disabled = true; // Tốt hơn là disable nó
+             }
+        }
+
+
+        // Event listener cho checkbox
+        checkbox.addEventListener('change', (e) => {
+            // === SỬA ĐỔI: Tìm đúng đối tượng (Bien hoặc KieuPhanTu) để cập nhật ===
+            // `targetBien.DanhSachRangBuoc` bây giờ đang trỏ đến đúng mảng cần sửa
+            // (Hoặc `Bien.DanhSachRangBuoc` hoặc `KieuPhanTu.ElementConstraints`)
+            const currentConstraintList = targetBien.DanhSachRangBuoc; // Mảng cần cập nhật
+
+            if (e.target.checked) {
+                // Thêm ràng buộc vào danh sách của Bien/KieuPhanTu
+                const newConstraint = getRangBuocByName(rbName); // Lấy bản sao mới
+                 // Nếu có input giá trị, lấy giá trị hiện tại từ input (hoặc mặc định)
+                 if (newConstraint.hasOwnProperty('GiaTri') && typeof newConstraint.GiaTri !== 'boolean') {
+                      valueInput.style.display = 'inline-block';
+                      valueInput.disabled = false;
+                      const currentValue = (valueInput.type === 'number') ?
+                                           parseFloat(valueInput.value) || newConstraint.GiaTri :
+                                           valueInput.value;
+                      newConstraint.GiaTri = currentValue; // Cập nhật giá trị trước khi thêm
+                 } else {
+                      valueInput.style.display = 'none'; // Ẩn input nếu không cần
+                 }
+
+                // Chỉ thêm nếu chưa tồn tại
+                if (!currentConstraintList.some(rb => rb.Ten === rbName)) {
+                    currentConstraintList.push(newConstraint);
+                    console.log(`Added constraint ${rbName} to ${JSON.stringify(dataPath)}. New list:`, JSON.stringify(currentConstraintList));
+                }
+                 valueInput.disabled = false; // Enable input khi chọn
+
+            } else {
+                // Xóa ràng buộc khỏi danh sách
+                const indexToRemove = currentConstraintList.findIndex(rb => rb.Ten === rbName);
+                if (indexToRemove > -1) {
+                    currentConstraintList.splice(indexToRemove, 1);
+                     console.log(`Removed constraint ${rbName} from ${JSON.stringify(dataPath)}. New list:`, JSON.stringify(currentConstraintList));
+                }
+                 // Ẩn hoặc disable input nếu có
+                 if (rangBuocInfo.hasOwnProperty('GiaTri') && typeof rangBuocInfo.GiaTri !== 'boolean') {
+                      // valueInput.style.display = 'none';
+                       valueInput.disabled = true; // Disable input khi bỏ chọn
+                 }
+            }
+        });
+
+        // Event listener cho input giá trị (nếu có)
+        if (rangBuocInfo.hasOwnProperty('GiaTri') && typeof rangBuocInfo.GiaTri !== 'boolean') {
+            valueInput.addEventListener('input', (e) => {
+                 // === SỬA ĐỔI: Tìm đúng đối tượng ràng buộc trong danh sách để cập nhật ===
+                 const currentConstraintList = targetBien.DanhSachRangBuoc; // Mảng cần cập nhật
+                 const constraintToUpdate = currentConstraintList.find(rb => rb.Ten === rbName);
+
+                if (constraintToUpdate && checkbox.checked) { // Chỉ cập nhật nếu ràng buộc đang được chọn
+                    const newValue = (e.target.type === 'number') ?
+                                      parseFloat(e.target.value) : // Cần xử lý NaN nếu cần
+                                      e.target.value;
+                    constraintToUpdate.GiaTri = newValue;
+                     console.log(`Updated constraint ${rbName} value for ${JSON.stringify(dataPath)} to ${newValue}. List:`, JSON.stringify(currentConstraintList));
+                }
+            });
+        }
+
+
+        container.appendChild(constraintNode);
+    });
+}
 
 
     // --- Event Listeners Chính ---
     variableInput.addEventListener('input', renderVariablesList); // Giữ nguyên
     showJsonButton.addEventListener('click', () => { // Giữ nguyên
         // Tạo bản sao sâu và loại bỏ các thông tin không cần thiết (như DanhSachRangBuocCoThe) trước khi hiển thị
+        console.log("Dữ liệu trước khi chuyển đổi sang JSON:", currentVariables);
         const outputData = JSON.parse(JSON.stringify(Object.values(currentVariables), (key, value) => {
              if (key === 'DanhSachRangBuocCoThe' || key === 'LoaiDuLieuApDung' || key === 'MoTa') { // Loại bỏ các trường không cần thiết trong output cuối
                  return undefined;
@@ -827,55 +895,190 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
         outputJsonContainer.textContent = JSON.stringify(outputData, null, 2); // null, 2 để format đẹp
     });
-    const generateValuesButton = document.getElementById('generateValuesButton');
-    const outputValues = document.getElementById('outputValues');
-    const numFilesInput = document.getElementById('numFiles');
-    const preFileName = document.getElementById('preFileName');
-    // --- Khởi tạo lần đầu ---
-    renderVariablesList(); // Giữ nguyên
-    // --- Chức năng sinh giá trị  ---
-    
-
-    generateValuesButton?.addEventListener('click', () => {
-        const numFiles = parseInt(numFilesInput.value);
-        
-        const zip = new JSZip();
-        for(let i=1;i<=numFiles;i++){
-            const resultText = generateValuesFromVariables(currentVariables);
-            zip.file(`${preFileName.value}_${i}.txt`, resultText);
-
-        }
-        zip.generateAsync({ type: "blob" })
-            .then(function(blob) {
-                saveAs(blob, `${preFileName.value}`);
-                messageDiv.classList.add('hidden');
-                generateZipButton.disabled = false;
-                alert('Đã tạo và tải xuống file ZIP thành công!');
-            })
-            .catch(function(error) {
-                console.error("Lỗi tạo file ZIP:", error);
-                messageDiv.textContent = "Lỗi khi tạo file ZIP.";
-                generateZipButton.disabled = false;
-            });
-
-        const resultTextinline = generateValuesFromVariables(currentVariables);
-        outputValues.textContent = resultTextinline;
-
-
+  
+  
+    // --- Các Event Listeners ban đầu ---
+    variableInput.addEventListener('input', renderVariablesList);
+    showJsonButton.addEventListener('click', () => {
+        outputJsonContainer.textContent = JSON.stringify(currentVariables, null, 2);
     });
-    function generateValuesFromVariables(state) {
+    generateValuesButton.addEventListener('click', () => {
+        const numFiles = parseInt(document.getElementById('numFiles').value);
+        const preFileName = document.getElementById('preFileName').value;
+        generateTestFiles(currentVariables, numFiles, preFileName); // Hàm này cần được xem lại/định nghĩa
+        alert(`Đã yêu cầu tạo ${numFiles} file test (Kiểm tra console hoặc nơi lưu file nếu có).`);
+
+        // Hiển thị lại giá trị inline cho file đầu tiên (ví dụ)
+        const resultTextinline = generateValuesFromVariables(currentVariables); // Hàm này cần được xem lại/định nghĩa
+        outputValues.textContent = resultTextinline;
+    });
+
+
+    // --- Khởi tạo ---
+    renderVariablesList(); // Render lần đầu dựa trên textarea (nếu có)
+     // Thêm phần khởi tạo hoặc xử lý file JSON nếu cần
+     // Ví dụ: loadInitialData().then(renderVariablesList);
+
+     // --- Các hàm helper sinh giá trị (CẦN XEM LẠI VÀ HOÀN THIỆN) ---
+      function generateTestFiles(variables, numFiles, preFileName) {
+         console.warn("Chức năng generateTestFiles chưa được triển khai đầy đủ.");
+         const zip = new JSZip(); // Giả sử thư viện JSZip đã được import
+
+         for (let i = 1; i <= numFiles; i++) {
+             const fileContent = generateValuesFromVariables(variables); // Sinh dữ liệu cho mỗi file
+             const fileName = `${preFileName}${i}.txt`; // Ví dụ tên file: input1.txt
+             zip.file(fileName, fileContent);
+             console.log(`Generated content for ${fileName}:\n${fileContent}`); // Log ra console để xem
+         }
+
+         // Tạo và tải file zip (ví dụ)
+         zip.generateAsync({type:"blob"})
+            .then(function(content) {
+                // Tạo link tải xuống
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `${preFileName}_test.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+     }
+
+    //  function generateValuesFromVariables(variables /* Có thể cần thêm các tham số khác */) {
+    //       //console.warn("Chức năng generateValuesFromVariables chưa được triển khai đầy đủ.");
+    //       let output = "";
+    //       // Duyệt qua các biến top-level và gọi hàm sinh giá trị đệ quy
+    //       Object.values(variables).forEach(bien => {
+    //            output += generateSingleValue(bien) + "\n"; // Ví dụ: mỗi biến trên 1 dòng
+    //       });
+    //       return output.trim(); // Xóa dòng trống cuối
+    //  }
+
+     function generateValuesFromVariables(state) {
         let lines = [];
         const variableValues = new Map(); // Lưu giá trị đã sinh ra cho từng biến
 
         Object.entries(state).forEach(([tenBien, bien]) => {
-            const value = formatValueForVariable(bien, variableValues);
+            const value = generateSingleValue(bien, variableValues);
             variableValues.set(tenBien, value); // lưu lại giá trị
+            
             lines.push(`${formatDisplayValue(value)}`);
         });
         return lines.join('\n');
     }
+    function formatDisplayValue(value) {
+        if (Array.isArray(value)) {
+            // Sửa lại để xử lý đệ quy đúng cách
+            return `${value.map(formatDisplayValue).join(' ')}`;
+        }
+        // Bỏ xử lý riêng cho object vì record trả về array
+        // if (typeof value === 'object' && value !== null) { ... }
+        if (typeof value === 'string') {
+            // Bỏ dấu "" nếu không muốn
+            // return `"${value}"`;
+            return value;
+        }
+        return value; // Trả về số, char, null...
+    }
+     function generateSingleValue(bienData,valueMap) {
+          const type = bienData.LoaiDuLieu.Ten;
+          const constraints = bienData.DanhSachRangBuoc; // Ràng buộc của chính biến này
 
-    function formatValueForVariable(bien, valueMap) {
+           // Lấy giá trị min/max từ ràng buộc nếu có
+           let min = constraints.find(c => c.Ten === 'GiaTriNhoNhat')?.GiaTri ?? 0;
+           let max = constraints.find(c => c.Ten === 'GiaTriLonNhat')?.GiaTri ?? 100; // Giá trị mặc định
+
+          switch (type) {
+              case 'int':
+                    return getRandomInt(min, max);
+              case 'double':
+                   // Cần thêm ràng buộc cho double nếu muốn
+                   return getRandomFloat(min, max).toFixed(6); // Ví dụ 6 chữ số thập phân
+              case 'char':
+                  return generateRandomChar(constraints);
+              case 'string':
+                  // Cần thêm ràng buộc độ dài, v.v.
+                  let len = getRandomInt(1, 10); // Ví dụ độ dài ngẫu nhiên 1-10
+                  let str = '';
+                  for(let i=0; i<len; i++) {
+                       str += generateRandomChar(constraints); // Sử dụng ràng buộc char
+                  }
+                  return str;
+              case 'array':
+                let length = 3; // Độ dài mặc định nếu không xác định được
+                const soLuong = bienData.LoaiDuLieu.SoLuong;
+
+                if (typeof soLuong === 'number') {
+                    length = soLuong >= 0 ? soLuong : 0; // Đảm bảo không âm
+                } else if (typeof soLuong === 'string' && valueMap.has(soLuong)) {
+                    const resolvedLength = parseInt(valueMap.get(soLuong));
+                    length = !isNaN(resolvedLength) && resolvedLength >=0 ? resolvedLength : 0; // Kiểm tra NaN và âm
+                } else if (soLuong !== '' && soLuong !== null && soLuong !== undefined) {
+                    console.warn(`Không tìm thấy biến kích thước '${soLuong}' hoặc giá trị không hợp lệ. Dùng length=0.`);
+                    length = 0; // Nếu có tên biến nhưng không tìm thấy, dùng 0
+                } else {
+                    // Nếu SoLuong là '', null, undefined (chưa chọn), dùng length mặc định ban đầu (ví dụ 3 hoặc 0)
+                    console.warn(`Kích thước mảng không xác định ('${soLuong}'). Dùng length mặc định = ${length}.`);
+                     // Giữ length = 3 như ban đầu hoặc đổi thành 0 nếu muốn
+                     // length = 0;
+                }
+
+
+                if (!bienData.LoaiDuLieu.KieuPhanTu) {
+                    console.error("Mảng không có kiểu phần tử!");
+                    return [];
+                }
+
+                //   let count;
+                  
+                //   if (typeof bienData.LoaiDuLieu.SoLuong === 'number') {
+                //       count = bienData.LoaiDuLieu.SoLuong;
+                //   } else if (typeof bienData.LoaiDuLieu.SoLuong === 'string' && bienData.LoaiDuLieu.SoLuong !== '') {
+
+                //       // Tìm giá trị của biến tham chiếu
+                //       const refVar = currentVariables[bienData.LoaiDuLieu.SoLuong];
+                //      //console.log(bienData.LoaiDuLieu.SoLuong);
+                //      // count = refVar ? generateSingleValue(refVar) : 0; // Sinh giá trị biến tham chiếu
+                //       count = parseInt(refVar) || 0; // Chuyển sang số
+                //   } else {
+                //        count = 0; // Mặc định 1-5 phần tử
+                //   }
+
+                  let arrValues = [];
+                  const elementType = bienData.LoaiDuLieu.KieuPhanTu;
+                  const elementConstraints = elementType.ElementConstraints || []; // Lấy ràng buộc của element
+
+                  // Tạo pseudo-Bien cho element để sinh giá trị
+                  const elementPseudoBien = {
+                       TenBien: `${bienData.TenBien}_[Element]_`,
+                       LoaiDuLieu: elementType,
+                       DanhSachRangBuoc: elementConstraints // Sử dụng ElementConstraints
+                  };
+                  
+                  console.log(elementPseudoBien.TenBien);
+
+                  for (let i = 0; i < length; i++) {
+                        arrValues.push(generateSingleValue(elementPseudoBien,valueMap)); // Đệ quy sinh giá trị phần tử
+                  }
+                  if(!(elementPseudoBien.LoaiDuLieu.Ten === 'array')){
+                    return arrValues.join(' ');
+                  }
+                  return arrValues.join('\n'); // Ví dụ: các phần tử cách nhau bởi khoảng trắng
+              case 'record':
+                   let recordValues = [];
+                   bienData.LoaiDuLieu.DanhSachThanhVien.forEach(member => {
+                       recordValues.push(generateSingleValue(member)); // Đệ quy sinh giá trị thành viên
+                   });
+                    return recordValues.join(' '); // Ví dụ: các thành viên cách nhau bởi khoảng trắng
+              default:
+                  return `[Unsupported Type: ${type}]`;
+          }
+     }
+     function formatValueForLoaiDuLieu(ld, valueMap, constraints = []) {
+        // Tạo biến tạm để gọi hàm đệ quy, truyền constraints vào
+        return formatValueForVariable({ TenBien: '[Element]', LoaiDuLieu: ld, DanhSachRangBuoc: constraints }, valueMap);
+    }
+     function formatValueForVariable(bien, valueMap) {
         const type = bien.LoaiDuLieu.Ten;
         const constraints = bien.DanhSachRangBuoc || [];
         const getConstraint = (ten) => constraints.find(rb => rb.Ten === ten)?.GiaTri;
@@ -918,7 +1121,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error("Mảng không có kiểu phần tử!");
                     return [];
                 }
-                return Array.from({ length }, () => formatValueForLoaiDuLieu(bien.LoaiDuLieu.KieuPhanTu, valueMap));
+                return Array.from({ length }, () => {
+                    // Thay đổi ở đây: truyền cả ràng buộc của kiểu phần tử vào
+                    return formatValueForLoaiDuLieu(bien.LoaiDuLieu.KieuPhanTu, valueMap, bien.LoaiDuLieu.KieuPhanTu.DanhSachRangBuoc); 
+                });
+                //return Array.from({ length }, () => formatValueForLoaiDuLieu(bien.LoaiDuLieu.KieuPhanTu, valueMap));
              }
             case 'record':
                 if (!Array.isArray(bien.LoaiDuLieu.DanhSachThanhVien)) return []; // Trả về mảng rỗng nếu không có thành viên
@@ -927,59 +1134,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 return null;
          }
     }
-    function formatValueForLoaiDuLieu(ld, valueMap) {
-        // Tạo biến tạm để gọi hàm đệ quy
-        return formatValueForVariable({ TenBien: '[Element]', LoaiDuLieu: ld, DanhSachRangBuoc: [] }, valueMap);
-    }
+     // Hàm sinh số nguyên ngẫu nhiên trong khoảng [min, max]
+     function getRandomInt(min, max) {
+         min = parseInt(min); max = parseInt(max);
+         if(isNaN(min)) min = 0; if(isNaN(max)) max = 100;
+         if(min > max) [min, max] = [max, min]; // Đảm bảo min <= max
+         return Math.floor(Math.random() * (max - min + 1)) + min;
+     }
 
-    // Hiển thị giá trị phù hợp (chuỗi, mảng, record)
-    function formatDisplayValue(value) {
-        if (Array.isArray(value)) {
-            // Sửa lại để xử lý đệ quy đúng cách
-            return `${value.map(formatDisplayValue).join(' ')}`;
-        }
-        // Bỏ xử lý riêng cho object vì record trả về array
-        // if (typeof value === 'object' && value !== null) { ... }
-        if (typeof value === 'string') {
-            // Bỏ dấu "" nếu không muốn
-            // return `"${value}"`;
-            return value;
-        }
-        return value; // Trả về số, char, null...
-    }
+     // Hàm sinh số thực ngẫu nhiên trong khoảng [min, max)
+     function getRandomFloat(min, max) {
+         min = parseFloat(min); max = parseFloat(max);
+          if(isNaN(min)) min = 0; if(isNaN(max)) max = 100;
+         if(min > max) [min, max] = [max, min]; // Đảm bảo min <= max
+         return Math.random() * (max - min) + min;
+     }
+
+      // Hàm sinh ký tự ngẫu nhiên dựa trên ràng buộc
+      function generateRandomChar(constraints) {
+          let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{};\':"\\|,.<>/?~`'; // Tập ký tự đầy đủ hơn
+          if (constraints.some(c => c.Ten === 'KhongChuaChuHoa')) {
+              charset = charset.replace(/[A-Z]/g, '');
+          }
+          if (constraints.some(c => c.Ten === 'KhongChuaChuThuong')) {
+              charset = charset.replace(/[a-z]/g, '');
+          }
+          if (constraints.some(c => c.Ten === 'KhongChuaCacKyTuDacBiet')) {
+              charset = charset.replace(/[^a-zA-Z0-9]/g, ''); // Giữ lại chỉ chữ và số
+          }
+          if (!charset) return '?'; // Trả về ký tự mặc định nếu charset rỗng
+          const randomIndex = Math.floor(Math.random() * charset.length);
+          return charset[randomIndex];
+      }
 
 
+});
 
-    function getRandomInt(min, max) {
-        min = parseInt(min); max = parseInt(max);
-        if(isNaN(min)) min = 0; if(isNaN(max)) max = 100;
-        if(min > max) [min, max] = [max, min];
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    function getRandomFloat(min, max) {
-        min = parseFloat(min); max = parseFloat(max);
-        if(isNaN(min)) min = 0; if(isNaN(max)) max = 100;
-        if(min > max) [min, max] = [max, min];
-        return Math.random() * (max - min) + min;
-    }
-
-    function generateRandomChar(constraints) {
-        let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        if (constraints.some(c => c.Ten === 'KhongChuaChuHoa')) {
-            charset = charset.replace(/[A-Z]/g, '');
-        }
-        if (constraints.some(c => c.Ten === 'KhongChuaChuThuong')) {
-            charset = charset.replace(/[a-z]/g, '');
-        }
-        if (constraints.some(c => c.Ten === 'KhongChuaCacKyTuDacBiet')) {
-            charset = charset.replace(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, ''); // Cập nhật regex
-        }
-        return charset.length > 0 ? charset[Math.floor(Math.random() * charset.length)] : ' '; // Trả về space nếu rỗng
-    }
-
-    function generateRandomString(constraints, length = 5) { // Thêm độ dài mặc định
-        return Array.from({ length: length }, () => generateRandomChar(constraints)).join('');
-    }
-
-}); // Kết thúc DOMContentLoaded
+  
+  
